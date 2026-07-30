@@ -1,0 +1,8 @@
+{
+  "name": "forge-infra",
+  "private": true,
+  "version": "0.0.1",
+  "devDependencies": {
+    "railway": "^3.7.0"
+  }
+}

@@ -16,6 +16,12 @@ app.include_router(log.router)
 app.include_router(metrics.router)
 app.include_router(brief.router)
 
+
+@app.get("/health")
+def health():
+    return {"status": "ok"}
+
+
 FRONTEND_DIST = Path(__file__).resolve().parent.parent / "frontend" / "dist"
 if FRONTEND_DIST.exists():
     app.mount("/", StaticFiles(directory=FRONTEND_DIST, html=True), name="frontend")

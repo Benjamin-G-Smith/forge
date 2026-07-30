@@ -40,7 +40,7 @@ forge/
 │       ├── api.js
 │       └── components/  MorningBrief, Heatmap, MetricsRow, StageTrack, Milestones, LogSession
 ├── Dockerfile
-├── railway.json
+├── .railway/railway.ts
 └── requirements.txt
 ```
 
@@ -165,14 +165,16 @@ To swap: change `ChatAnthropic` → `ChatGoogleGenerativeAI(model="gemini-1.5-fl
 
 ## Railway config notes
 
-- Dockerfile: multi-stage — Node stage builds the React frontend, Python stage runs FastAPI
-- FastAPI serves the React `dist/` folder as static files on `/`
-- The Dockerfile CMD reads `$PORT` (Railway assigns this dynamically, unlike Fly's fixed port) — don't hardcode a port
-- SQLite DB file lives at `/data/career.db` — attach a Railway volume at `/data` (Volumes are set up per-service in the Railway dashboard, not in `railway.json`)
-- Two Railway services from this same repo:
-  - `web` — always-on, runs the Dockerfile's default CMD (uvicorn)
-  - `morning-brief` — same image, Start Command overridden to `python -m chain.morning_brief --scheduled`, with a Cron Schedule of `0 7 * * *` set in that service's Settings. It needs the same volume mounted at `/data` so it reads/writes the same SQLite file as `web`.
-- Secrets/env vars are set as Railway "Variables" per-service (both services need `ANTHROPIC_API_KEY`/`GOOGLE_API_KEY`, `TAVILY_API_KEY`, `DB_PATH`; only `web` needs `VIEW_TOKEN`/`ADMIN_TOKEN`)
+Infra is defined as code in `.railway/railway.ts` (via the `railway` npm package's IaC API — `railway config plan`/`apply`), not a plain `railway.json`. Two services, both built from the repo's Dockerfile via GitHub source:
+
+- `web` — always-on, default CMD (uvicorn). Owns the `data` volume, mounted at `/data`. `PORT` is pinned to `8000` explicitly (rather than left to Railway's dynamic per-deploy assignment) so `morning-brief` can reliably reference it.
+- `morning-brief` — a `fn()` resource (Railway's cron/function kind), Start Command `python scripts/trigger_brief.py`, Cron Schedule `0 7 * * *`.
+
+**Important constraint learned the hard way: a Railway volume can only attach to one service at a time** — it silently detaches if you try to declare it on a second service. So `morning-brief` does *not* mount the volume or touch the SQLite file directly. Instead it makes an HTTP POST to `web`'s own `/api/brief/generate` over Railway's private network (`web.railway.internal`, referenced via `web.env.RAILWAY_PRIVATE_DOMAIN`/`web.env.PORT` in `railway.ts`) — the same endpoint the UI's "Regenerate" button hits.
+
+Health checks matter: Railway's healthcheck needs a plain 2xx, so it hits `GET /health` (unauthenticated, defined in `api/main.py`) — not `/api/dashboard`, which correctly 401s without a token and Railway reads as "service unavailable."
+
+Secrets are Railway "Variables" per-service, set via `railway variable set KEY=value --service <name> --skip-deploys` — never via `railway variable list` without `--service`, since both the default and `--json`/`--kv` forms print raw values to stdout. `web` needs `VIEW_TOKEN`, `ADMIN_TOKEN`, `ANTHROPIC_API_KEY`/`GOOGLE_API_KEY`, `TAVILY_API_KEY`; `morning-brief` only needs a matching `ADMIN_TOKEN` (used to call `web`).
 
 ## 5-stage roadmap (for the UI and brief context)
 
@@ -218,5 +220,5 @@ second_project_shipped
 6. `GET /api/brief` + `POST /api/brief/generate`
 7. React frontend — Heatmap + MetricsRow first (data display), then LogSession (writes)
 8. MorningBrief component
-9. Dockerfile + railway.json
+9. Dockerfile + .railway/railway.ts
 10. Deploy to Railway, add variables, run migration script, test

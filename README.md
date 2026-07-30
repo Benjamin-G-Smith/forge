@@ -55,7 +55,7 @@ forge/
 │   ├── package.json
 │   └── vite.config.js
 ├── Dockerfile
-├── railway.json
+├── .railway/railway.ts
 ├── requirements.txt
 ├── CLAUDE.md
 └── README.md
@@ -181,26 +181,23 @@ The JSON schema:
 
 ## Railway deployment
 
-```json
-// railway.json (key sections)
-{
-  "build": {
-    "builder": "DOCKERFILE",
-    "dockerfilePath": "Dockerfile"
-  },
-  "deploy": {
-    "restartPolicyType": "ON_FAILURE",
-    "restartPolicyMaxRetries": 3
-  }
-}
+Infra is defined as code in `.railway/railway.ts` (the `railway` npm package's IaC API), applied with:
+
+```bash
+railway config plan    # preview, read-only
+railway config apply --yes
 ```
 
-Two services in one Railway project, both built from this same Dockerfile:
+Two services in one Railway project, both built from this repo's Dockerfile via GitHub source:
 
-- **web** — always-on, default CMD (uvicorn). Needs a volume mounted at `/data`.
-- **morning-brief** — Start Command overridden to `python -m chain.morning_brief --scheduled`, Cron Schedule set to `0 7 * * *` in that service's Settings tab. Needs the *same* volume mounted at `/data` so it shares the SQLite file with `web`.
+- **web** — always-on, default CMD (uvicorn). Owns the `data` volume at `/data`, and `PORT` is pinned to `8000` explicitly.
+- **morning-brief** — a `fn()` (cron) resource, Start Command `python scripts/trigger_brief.py`, Cron Schedule `0 7 * * *`.
 
-Required variables: `VIEW_TOKEN`, `ADMIN_TOKEN`, `ANTHROPIC_API_KEY`, `TAVILY_API_KEY` (`web` needs all four; `morning-brief` only needs the API keys plus `DB_PATH`)
+A Railway volume can only attach to one service, so `morning-brief` doesn't touch the SQLite file — it POSTs to `web`'s own `/api/brief/generate` over Railway's private network instead, the same endpoint the UI's "Regenerate" button hits.
+
+Railway's healthcheck needs a plain 2xx, so `web` is checked at `GET /health` (unauthenticated) rather than `/api/dashboard`, which correctly 401s without a token.
+
+Required variables, set via `railway variable set KEY=value --service <name> --skip-deploys` (never `railway variable list` without `--service` — it prints raw values): `web` needs `VIEW_TOKEN`, `ADMIN_TOKEN`, `ANTHROPIC_API_KEY`, `TAVILY_API_KEY`; `morning-brief` only needs a matching `ADMIN_TOKEN`.
 
 ## Environment variables
 

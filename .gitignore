@@ -22,5 +22,5 @@ frontend/dist/
 .vscode/
 .idea/
 
-# Railway
-.railway/
+# Node (root, for the Railway IaC SDK)
+node_modules/
