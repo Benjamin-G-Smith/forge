@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 
 import { api, isSharedView } from "./api.js";
+import Focus from "./components/Focus.jsx";
 import Heatmap from "./components/Heatmap.jsx";
 import LogSession from "./components/LogSession.jsx";
 import MetricsRow from "./components/MetricsRow.jsx";
@@ -30,12 +31,13 @@ export default function App() {
         {shared && <ShareBadge />}
       </header>
 
+      <Focus brief={dashboard.brief} milestones={dashboard.milestones} />
       <MorningBrief brief={dashboard.brief} onRegenerate={shared ? null : () => api.generateBrief().then(reload)} />
-      <MetricsRow metrics={dashboard.metrics} log={dashboard.log} />
       <Heatmap log={dashboard.log} />
       <StageTrack stagesComplete={dashboard.metrics.stages_complete} />
       <Milestones milestones={dashboard.milestones} readOnly={shared} onToggle={(key, completed) => api.toggleMilestone(key, completed).then(reload)} />
       {!shared && <LogSession onSubmit={(payload) => api.logSession(payload).then(reload)} />}
+      <MetricsRow metrics={dashboard.metrics} log={dashboard.log} />
     </div>
   );
 }

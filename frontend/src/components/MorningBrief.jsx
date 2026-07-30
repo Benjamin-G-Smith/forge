@@ -16,7 +16,6 @@ export default function MorningBrief({ brief, onRegenerate }) {
       {brief ? (
         <div className="mt-3 space-y-3">
           <p className="text-gray-700">{brief.summary}</p>
-          <p className="font-medium text-gray-900">Today: {brief.focus}</p>
           <ul className="space-y-1">
             {brief.research.map((r) => (
               <li key={r.url} className="text-sm">
