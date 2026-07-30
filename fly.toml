@@ -1,4 +1,4 @@
-app = "career-tracker"
+app = "forge"
 primary_region = "iad"
 
 [build]
@@ -7,7 +7,7 @@ primary_region = "iad"
   DB_PATH = "/data/career.db"
 
 [[mounts]]
-  source = "career_tracker_data"
+  source = "forge_data"
   destination = "/data"
 
 [http_service]

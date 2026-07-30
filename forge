@@ -1,0 +1,55 @@
+#!/usr/bin/env bash
+set -euo pipefail
+cd "$(dirname "$0")"
+
+usage() {
+  echo "Usage: forge <run|build>" >&2
+  echo "  run    Start backend (uvicorn --reload) and frontend (vite) together" >&2
+  echo "  build  Build the production frontend bundle into frontend/dist" >&2
+  exit 1
+}
+
+require_frontend_deps() {
+  if [ ! -d frontend/node_modules ]; then
+    echo "frontend/node_modules missing — run: npm install --prefix frontend" >&2
+    exit 1
+  fi
+}
+
+cmd_run() {
+  if [ -f .env ]; then
+    set -a
+    source .env
+    set +a
+  fi
+
+  export VIEW_TOKEN="${VIEW_TOKEN:-dev}"
+  export ADMIN_TOKEN="${ADMIN_TOKEN:-dev}"
+  export DB_PATH="${DB_PATH:-career.db}"
+
+  require_frontend_deps
+
+  cleanup() {
+    jobs -p | xargs -r kill 2>/dev/null
+  }
+  trap cleanup EXIT INT TERM
+
+  echo "Backend:  http://127.0.0.1:8000/api/dashboard?v=$VIEW_TOKEN"
+  echo "Frontend: http://localhost:5173"
+
+  python3 -m uvicorn api.main:app --reload --port 8000 &
+  (cd frontend && exec ./node_modules/.bin/vite) &
+
+  wait
+}
+
+cmd_build() {
+  require_frontend_deps
+  (cd frontend && npm run build)
+}
+
+case "${1:-}" in
+  run) cmd_run ;;
+  build) cmd_build ;;
+  *) usage ;;
+esac

@@ -26,7 +26,7 @@ export default function App() {
   return (
     <div className="mx-auto max-w-4xl space-y-8 p-6">
       <header className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">Career Tracker</h1>
+        <h1 className="text-2xl font-bold">Forge</h1>
         {shared && <ShareBadge />}
       </header>
 

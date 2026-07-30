@@ -1,4 +1,4 @@
-# Career Tracker
+# Forge
 
 A personal AI-powered career pivot dashboard. Tracks daily progress toward an AI engineer role, generates a LangChain-powered morning brief each day, and lives at a public Fly.io URL as a live portfolio piece.
 
@@ -22,7 +22,7 @@ The app tracks session logs (daily work), generates a morning brief using a Lang
 ## Project structure
 
 ```
-career-tracker/
+forge/
 ├── api/
 │   ├── main.py              # FastAPI app, route registration, middleware
 │   ├── routers/

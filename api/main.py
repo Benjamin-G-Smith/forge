@@ -7,7 +7,7 @@ from api.auth import auth_middleware
 from api.db.database import init_db
 from api.routers import brief, dashboard, log, metrics
 
-app = FastAPI(title="Career Tracker")
+app = FastAPI(title="Forge")
 
 app.middleware("http")(auth_middleware)
 

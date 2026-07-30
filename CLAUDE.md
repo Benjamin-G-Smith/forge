@@ -1,4 +1,4 @@
-# CLAUDE.md — Career Tracker
+# CLAUDE.md — Forge
 
 This file gives you everything you need to work on this project without asking clarifying questions.
 
@@ -23,7 +23,7 @@ FastAPI serves both the REST API (`/api/*`) and the built React frontend as stat
 ## File layout
 
 ```
-career-tracker/
+forge/
 ├── api/
 │   ├── main.py
 │   ├── routers/         dashboard.py, log.py, metrics.py, brief.py
