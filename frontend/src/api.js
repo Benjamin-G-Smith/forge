@@ -1,5 +1,14 @@
 const VIEW_TOKEN = typeof window !== "undefined" ? window.__VIEW_TOKEN__ : undefined;
 
+// Dev-only: seed the admin token forge run started the backend with, so
+// there's no manual localStorage step just to unblock local development.
+// VITE_DEV_ADMIN_TOKEN is only ever set by `forge run`, never by `forge
+// build`, so it's never baked into a production bundle.
+const DEV_ADMIN_TOKEN = import.meta.env.VITE_DEV_ADMIN_TOKEN;
+if (import.meta.env.DEV && DEV_ADMIN_TOKEN && !localStorage.getItem("ADMIN_TOKEN")) {
+  localStorage.setItem("ADMIN_TOKEN", DEV_ADMIN_TOKEN);
+}
+
 export function isSharedView() {
   return Boolean(VIEW_TOKEN) && !localStorage.getItem("ADMIN_TOKEN");
 }

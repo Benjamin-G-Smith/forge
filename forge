@@ -26,6 +26,7 @@ cmd_run() {
   export VIEW_TOKEN="${VIEW_TOKEN:-dev}"
   export ADMIN_TOKEN="${ADMIN_TOKEN:-dev}"
   export DB_PATH="${DB_PATH:-career.db}"
+  export VITE_DEV_ADMIN_TOKEN="$ADMIN_TOKEN"
 
   require_frontend_deps
 
