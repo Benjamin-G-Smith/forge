@@ -22,5 +22,5 @@ frontend/dist/
 .vscode/
 .idea/
 
-# Fly
-fly.toml.bak
+# Railway
+.railway/

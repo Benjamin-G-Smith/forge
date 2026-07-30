@@ -15,7 +15,7 @@ A deployed web application with a FastAPI backend, React + Tailwind frontend, an
 - Frontend: React 18 + Tailwind CSS + Vite
 - Database: SQLite (via SQLModel / SQLAlchemy)
 - LLM chain: LangChain + Tavily search + Anthropic Claude (Haiku 3.5) or Gemini 1.5 Flash (free tier)
-- Deployment: Fly.io (app + scheduled brief generation at 7am daily)
+- Deployment: Railway (app + scheduled brief generation at 7am daily via a second cron-scheduled service)
 - Auth: Single static `VIEW_TOKEN` in URL query param for shared access; `ADMIN_TOKEN` env var for write operations
 
 ---
@@ -36,7 +36,7 @@ A deployed web application with a FastAPI backend, React + Tailwind frontend, an
 **Auth middleware:**
 - Read routes: check `?v=VIEW_TOKEN` query param or `Authorization: Bearer ADMIN_TOKEN` header
 - Write routes: require `ADMIN_TOKEN` header only
-- Both tokens set as Fly.io secrets (env vars)
+- Both tokens set as Railway variables (env vars)
 
 **Internal dependencies:** SQLite via SQLModel, LangChain chain (brief only)
 
@@ -143,7 +143,7 @@ Run once on first deploy. Idempotent (skip entries that already exist by date).
   - Requires admin token; fails gracefully on shared-link views
 
 - [ ] **US-02:** As Benjamin, I want to open the app each morning and see a pre-generated brief so I start focused without waiting.
-  - A brief is auto-generated nightly at 7am via Fly.io scheduler
+  - A brief is auto-generated nightly at 7am via a cron-scheduled Railway service
   - The brief shows: yesterday's recap, today's focus, 2–3 research links with reasons
   - If no session was logged yesterday, the brief falls back to roadmap position + general research
 
@@ -172,5 +172,5 @@ Run once on first deploy. Idempotent (skip entries that already exist by date).
 - Multi-user support — this is a personal tool
 - Mobile-specific UI (responsive Tailwind is sufficient, no native app)
 - Auth UI (login page, sessions, cookies) — token-in-URL is sufficient for v1
-- CI/CD pipeline — manual `fly deploy` is fine for a solo project
+- CI/CD pipeline — manual `railway up` is fine for a solo project
 - LangGraph multi-agent chain — single chain is sufficient for v1 brief quality

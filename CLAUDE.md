@@ -13,12 +13,12 @@ Benjamin is a C#/.NET/Angular developer pivoting to an AI Application Engineer r
 - **Python only on the backend.** Benjamin is building Python skills. Do not suggest C# or Node for backend work.
 - **Keep it shippable.** Prefer simple working code over clever abstractions. This is a solo portfolio project, not a team codebase.
 - **LangChain for the brief chain.** Even if raw API calls would be simpler — the point is to build LangChain experience.
-- **SQLite only.** No Postgres, no Redis, no external databases. SQLite lives in the Fly.io volume.
+- **SQLite only.** No Postgres, no Redis, no external databases. SQLite lives in a Railway volume.
 - **React + Tailwind for the frontend.** Beautiful UI matters — this is a portfolio piece. Don't suggest plain HTML/JS.
 
 ## Architecture in one paragraph
 
-FastAPI serves both the REST API (`/api/*`) and the built React frontend as static files. SQLite (via SQLModel) is the data layer — one DB file with four tables: `sessions`, `metrics`, `milestones`, `briefs`. The LangChain morning brief chain (`chain/morning_brief.py`) reads yesterday's session, runs 2–3 Tavily searches based on the work type, and calls Claude Haiku 3.5 (or Gemini 1.5 Flash) to generate a structured brief. Fly.io runs the chain on a 7am schedule and the user can regenerate on demand. Auth is two env-var tokens: `VIEW_TOKEN` (read-only, in shareable URL) and `ADMIN_TOKEN` (write access, in Authorization header).
+FastAPI serves both the REST API (`/api/*`) and the built React frontend as static files. SQLite (via SQLModel) is the data layer — one DB file with four tables: `sessions`, `metrics`, `milestones`, `briefs`. The LangChain morning brief chain (`chain/morning_brief.py`) reads yesterday's session, runs 2–3 Tavily searches based on the work type, and calls Claude Haiku 3.5 (or Gemini 1.5 Flash) to generate a structured brief. A second Railway service (same repo, cron-scheduled) runs the chain at 7am and the user can regenerate on demand. Auth is two env-var tokens: `VIEW_TOKEN` (read-only, in shareable URL) and `ADMIN_TOKEN` (write access, in Authorization header).
 
 ## File layout
 
@@ -40,7 +40,7 @@ forge/
 │       ├── api.js
 │       └── components/  MorningBrief, Heatmap, MetricsRow, StageTrack, Milestones, LogSession
 ├── Dockerfile
-├── fly.toml
+├── railway.json
 └── requirements.txt
 ```
 
@@ -163,12 +163,16 @@ GOOGLE_API_KEY
 ```
 To swap: change `ChatAnthropic` → `ChatGoogleGenerativeAI(model="gemini-1.5-flash")` in `morning_brief.py`.
 
-## Fly.io config notes
+## Railway config notes
 
 - Dockerfile: multi-stage — Node stage builds the React frontend, Python stage runs FastAPI
 - FastAPI serves the React `dist/` folder as static files on `/`
-- SQLite DB file lives at `/data/career.db` — mount a Fly.io volume at `/data`
-- Scheduler: `[[schedules]]` runs `python -m chain.morning_brief --scheduled` at `0 7 * * *`
+- The Dockerfile CMD reads `$PORT` (Railway assigns this dynamically, unlike Fly's fixed port) — don't hardcode a port
+- SQLite DB file lives at `/data/career.db` — attach a Railway volume at `/data` (Volumes are set up per-service in the Railway dashboard, not in `railway.json`)
+- Two Railway services from this same repo:
+  - `web` — always-on, runs the Dockerfile's default CMD (uvicorn)
+  - `morning-brief` — same image, Start Command overridden to `python -m chain.morning_brief --scheduled`, with a Cron Schedule of `0 7 * * *` set in that service's Settings. It needs the same volume mounted at `/data` so it reads/writes the same SQLite file as `web`.
+- Secrets/env vars are set as Railway "Variables" per-service (both services need `ANTHROPIC_API_KEY`/`GOOGLE_API_KEY`, `TAVILY_API_KEY`, `DB_PATH`; only `web` needs `VIEW_TOKEN`/`ADMIN_TOKEN`)
 
 ## 5-stage roadmap (for the UI and brief context)
 
@@ -214,5 +218,5 @@ second_project_shipped
 6. `GET /api/brief` + `POST /api/brief/generate`
 7. React frontend — Heatmap + MetricsRow first (data display), then LogSession (writes)
 8. MorningBrief component
-9. Dockerfile + fly.toml
-10. Deploy to Fly.io, add secrets, run migration script, test
+9. Dockerfile + railway.json
+10. Deploy to Railway, add variables, run migration script, test

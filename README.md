@@ -1,6 +1,6 @@
 # Forge
 
-A personal AI-powered career pivot dashboard. Tracks daily progress toward an AI engineer role, generates a LangChain-powered morning brief each day, and lives at a public Fly.io URL as a live portfolio piece.
+A personal AI-powered career pivot dashboard. Tracks daily progress toward an AI engineer role, generates a LangChain-powered morning brief each day, and lives at a public Railway URL as a live portfolio piece.
 
 ## What this is
 
@@ -16,7 +16,7 @@ The app tracks session logs (daily work), generates a morning brief using a Lang
 | Database | SQLite via SQLModel | Self-contained, zero ops, sufficient for solo use |
 | LLM chain | LangChain + Tavily + Claude Haiku 3.5 | LangChain is the dominant framework in 2026 AI eng postings; Tavily is the standard search pairing |
 | Frontend | React 18 + Tailwind CSS + Vite | Portfolio-quality UI; familiar component model |
-| Deployment | Fly.io | Free tier, built-in scheduler for nightly brief, easy secrets management |
+| Deployment | Railway | Simple Dockerfile-based deploys, volumes for SQLite, per-service cron scheduling for the nightly brief |
 | LLM fallback | Gemini 1.5 Flash | Free API tier — swap via one env var if Anthropic costs are a concern |
 
 ## Project structure
@@ -55,7 +55,7 @@ forge/
 │   ├── package.json
 │   └── vite.config.js
 ├── Dockerfile
-├── fly.toml
+├── railway.json
 ├── requirements.txt
 ├── CLAUDE.md
 └── README.md
@@ -116,7 +116,7 @@ CREATE TABLE briefs (
 
 ## Auth
 
-Two tokens, both set as Fly.io secrets (env vars):
+Two tokens, both set as Railway variables (env vars):
 
 - `VIEW_TOKEN` — read-only access. Appended to shareable URLs as `?v=<token>`. Hiring managers get this URL. Full dashboard visible, log form hidden.
 - `ADMIN_TOKEN` — write access. Used by Benjamin via `Authorization: Bearer <token>` header. All write routes require this.
@@ -179,26 +179,28 @@ The JSON schema:
 }
 ```
 
-## Fly.io deployment
+## Railway deployment
 
-```toml
-# fly.toml (key sections)
-[http_service]
-  internal_port = 8000
-
-[[statics]]
-  guest_path = "/app/frontend/dist"
-  url_prefix = "/"
-
-[processes]
-  app = "uvicorn api.main:app --host 0.0.0.0 --port 8000"
-
-[[schedules]]
-  schedule = "0 7 * * *"           # 7am daily
-  command = "python -m chain.morning_brief --scheduled"
+```json
+// railway.json (key sections)
+{
+  "build": {
+    "builder": "DOCKERFILE",
+    "dockerfilePath": "Dockerfile"
+  },
+  "deploy": {
+    "restartPolicyType": "ON_FAILURE",
+    "restartPolicyMaxRetries": 3
+  }
+}
 ```
 
-Required secrets: `VIEW_TOKEN`, `ADMIN_TOKEN`, `ANTHROPIC_API_KEY`, `TAVILY_API_KEY`
+Two services in one Railway project, both built from this same Dockerfile:
+
+- **web** — always-on, default CMD (uvicorn). Needs a volume mounted at `/data`.
+- **morning-brief** — Start Command overridden to `python -m chain.morning_brief --scheduled`, Cron Schedule set to `0 7 * * *` in that service's Settings tab. Needs the *same* volume mounted at `/data` so it shares the SQLite file with `web`.
+
+Required variables: `VIEW_TOKEN`, `ADMIN_TOKEN`, `ANTHROPIC_API_KEY`, `TAVILY_API_KEY` (`web` needs all four; `morning-brief` only needs the API keys plus `DB_PATH`)
 
 ## Environment variables
 
