@@ -1,0 +1,23 @@
+app = "career-tracker"
+primary_region = "iad"
+
+[build]
+
+[env]
+  DB_PATH = "/data/career.db"
+
+[[mounts]]
+  source = "career_tracker_data"
+  destination = "/data"
+
+[http_service]
+  internal_port = 8000
+  force_https = true
+  auto_stop_machines = true
+  auto_start_machines = true
+  min_machines_running = 0
+
+[[schedules]]
+  name = "morning-brief"
+  schedule = "0 7 * * *"
+  command = "python -m chain.morning_brief --scheduled"
