@@ -18,7 +18,7 @@ Benjamin is a C#/.NET/Angular developer pivoting to an AI Application Engineer r
 
 ## Architecture in one paragraph
 
-FastAPI serves both the REST API (`/api/*`) and the built React frontend as static files. SQLite (via SQLModel) is the data layer — one DB file with four tables: `sessions`, `metrics`, `milestones`, `briefs`. The LangChain morning brief chain (`chain/morning_brief.py`) reads yesterday's session, runs 2–3 Tavily searches based on the work type, and calls Claude Haiku 4.5 (or Gemini 1.5 Flash) to generate a structured brief. A second Railway service (same repo, cron-scheduled) runs the chain at 7am and the user can regenerate on demand. Auth is two env-var tokens: `VIEW_TOKEN` (read-only, in shareable URL) and `ADMIN_TOKEN` (write access, in Authorization header).
+FastAPI serves both the REST API (`/api/*`) and the built React frontend as static files. SQLite (via SQLModel) is the data layer — one DB file with five tables: `sessions`, `metrics`, `milestones`, `briefs`, `context_snapshots`. The LangChain morning brief chain (`chain/morning_brief.py`) reads yesterday's session, runs 2–3 Tavily searches based on the work type, and calls Claude Haiku 4.5 (or Gemini 1.5 Flash) to generate a structured brief. A second Railway service (same repo, cron-scheduled) runs the chain at 7am and the user can regenerate on demand. A second chain (`chain/context_sync.py`) reads Benjamin's Obsidian vault (`career-pivot.md`, local filesystem only) and proposes updates to the tracked roadmap stage/milestones — read-only against the vault, and the proposal is never auto-applied; he reviews and clicks Apply. Auth is two env-var tokens: `VIEW_TOKEN` (read-only, in shareable URL) and `ADMIN_TOKEN` (write access, in Authorization header).
 
 ## File layout
 
@@ -26,19 +26,21 @@ FastAPI serves both the REST API (`/api/*`) and the built React frontend as stat
 forge/
 ├── api/
 │   ├── main.py
-│   ├── routers/         dashboard.py, log.py, metrics.py, brief.py
-│   ├── services/        brief_service.py
+│   ├── routers/         dashboard.py, log.py, metrics.py, brief.py, context.py
+│   ├── services/        brief_service.py, context_service.py
 │   ├── models/          models.py (SQLModel tables + Pydantic schemas)
 │   └── db/              database.py
 ├── chain/
-│   └── morning_brief.py
+│   ├── llm_utils.py     shared get_llm() / parse_json_response()
+│   ├── morning_brief.py
+│   └── context_sync.py
 ├── scripts/
 │   └── migrate.py       one-time import from career-metrics.json
 ├── frontend/
 │   └── src/
 │       ├── App.jsx
 │       ├── api.js
-│       └── components/  MorningBrief, Heatmap, MetricsRow, StageTrack, Milestones, LogSession
+│       └── components/  MorningBrief, ContextSync, Focus, Heatmap, MetricsRow, StageTrack, Milestones, LogSession
 ├── Dockerfile
 ├── .railway/railway.ts
 └── requirements.txt
@@ -47,15 +49,19 @@ forge/
 ## Database tables
 
 ```sql
-sessions   (id, date TEXT, type TEXT, notes TEXT, commits INT, level INT, created_at INT)
-metrics    (id, projects_shipped INT, applications_sent INT, stages_complete INT, updated_at INT)
-milestones (key TEXT PRIMARY KEY, completed BOOL, completed_at INT)
-briefs     (id, date TEXT, summary TEXT, focus TEXT, research TEXT, generated_at INT)
+sessions          (id, date TEXT, type TEXT, notes TEXT, commits INT, level INT, created_at INT)
+metrics           (id, projects_shipped INT, applications_sent INT, stages_complete INT, updated_at INT)
+milestones        (key TEXT PRIMARY KEY, completed BOOL, completed_at INT)
+briefs            (id, date TEXT, summary TEXT, focus TEXT, research TEXT, generated_at INT)
+context_snapshots (id, created_at INT, source TEXT, summary TEXT, next_action TEXT, reasoning TEXT,
+                    proposed_stage INT, proposed_milestones TEXT, applied BOOL, applied_at INT)
 ```
 
 `sessions.type` is a JSON array string: `'["python","project"]'`
 `briefs.research` is a JSON array string: `'[{"title":"...","url":"...","reason":"..."}]'`
+`context_snapshots.proposed_milestones` is a JSON object string: `'{"stage1_shipped": false, ...}'`
 `metrics` is always a single row (id=1), updated in place.
+`context_snapshots` is insert-only — each refresh adds a new row rather than updating one. `applied`/`applied_at` are the only fields ever changed after insert.
 
 ## Auth middleware pattern
 
@@ -84,26 +90,28 @@ Write routes call `require_admin(request)` as a dependency — raises 403 if not
 
 ```python
 # chain/morning_brief.py — simplified flow
-from langchain_anthropic import ChatAnthropic
-from langchain_community.tools.tavily_search import TavilySearchResults
+from chain.llm_utils import get_llm, parse_json_response
+from langchain_community.utilities.tavily_search import TavilySearchAPIWrapper
 
 def generate_brief(session: dict | None) -> dict:
     # 1. Build search queries from session type + notes
     queries = classify_session(session)  # returns list[str]
 
-    # 2. Search
-    tool = TavilySearchResults(max_results=3)
+    # 2. Search — use raw_results(), not the TavilySearchResults tool /
+    # .results(): both route through clean_results(), which silently drops
+    # the title field Tavily actually returns (keeps only url + content).
+    wrapper = TavilySearchAPIWrapper()
     results = []
     for q in queries:
-        results.extend(tool.invoke(q))
+        results.extend(wrapper.raw_results(q, max_results=3)["results"])
 
     # 3. Generate
-    llm = ChatAnthropic(model="claude-haiku-4-5")
+    llm = get_llm()  # ChatAnthropic(claude-haiku-4-5), or Gemini if only GOOGLE_API_KEY is set
     prompt = build_prompt(session, results, roadmap_position())
     response = llm.invoke(prompt)
 
     # 4. Parse structured output (JSON in the response)
-    brief = parse_brief_json(response.content)
+    brief = parse_json_response(response.content)
 
     # 5. Persist to DB
     save_brief(brief)
@@ -111,6 +119,28 @@ def generate_brief(session: dict | None) -> dict:
 ```
 
 Fallback: if `session` is None (no log entry yesterday), use roadmap position as context.
+
+## Context sync chain (vault → proposed state)
+
+```python
+# chain/context_sync.py — simplified flow
+from chain.llm_utils import get_llm, parse_json_response
+
+def synthesize_context(current_stage: int, current_milestones: dict[str, bool]) -> dict:
+    vault_text = read_vault_note()  # reads VAULT_CAREER_PIVOT_PATH, or None if missing
+    if vault_text is None:
+        return {"summary": "No vault note found...", "proposed_stage": current_stage, ...}
+
+    prompt = build_prompt(vault_text, current_stage, current_milestones)
+    response = get_llm().invoke(prompt)
+    return parse_json_response(response.content)
+    # -> {summary, next_action, proposed_stage, proposed_milestones, reasoning}
+```
+
+- **Read-only against the vault** — never writes back to it. Reads only `career-pivot.md` (v1 — other vault project files are out of scope for now).
+- **Local-only**: `VAULT_CAREER_PIVOT_PATH` defaults to `/Users/bensmith/Documents/ember-vault/projects/career-pivot.md`, on this Mac's filesystem. On the Railway deployment this path doesn't exist, so `/api/context/refresh` there just hits the "no vault note found" fallback — this feature only does anything useful when Forge runs locally via `forge run`.
+- **Propose-then-approve, not auto-apply**: `POST /api/context/refresh` (admin-only) runs the chain and inserts a new `context_snapshots` row (`applied=false`) — it never touches `metrics`/`milestones`. `POST /api/context/{id}/apply` (admin-only) is the explicit step that copies `proposed_stage`/`proposed_milestones` into the real tracked tables. This exists specifically to avoid an LLM misreading a note and silently rewriting tracked progress — the model is also instructed to only mark something complete on concrete evidence, not vague language.
+- `GET /api/context` returns the latest snapshot (applied or not); the dashboard payload includes it under `context`. The frontend (`ContextSync.jsx`) shows the summary/next_action always, and an amber "proposed update" box with an Apply button only while the latest snapshot is unapplied.
 
 ## Existing data to migrate
 
@@ -161,7 +191,12 @@ Optional (if switching to Gemini):
 ```
 GOOGLE_API_KEY
 ```
-To swap: change `ChatAnthropic` → `ChatGoogleGenerativeAI(model="gemini-1.5-flash")` in `morning_brief.py`.
+To swap: change `ChatAnthropic` → `ChatGoogleGenerativeAI(model="gemini-1.5-flash")` in `chain/llm_utils.py`'s `get_llm()`.
+
+Optional (context sync — has a working default, only needed to override):
+```
+VAULT_CAREER_PIVOT_PATH   # default: /Users/bensmith/Documents/ember-vault/projects/career-pivot.md
+```
 
 ## Railway config notes
 

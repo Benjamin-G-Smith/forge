@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 
 import { api, isSharedView } from "./api.js";
+import ContextSync from "./components/ContextSync.jsx";
 import Focus from "./components/Focus.jsx";
 import Heatmap from "./components/Heatmap.jsx";
 import LogSession from "./components/LogSession.jsx";
@@ -32,6 +33,11 @@ export default function App() {
       </header>
 
       <Focus brief={dashboard.brief} milestones={dashboard.milestones} />
+      <ContextSync
+        context={dashboard.context}
+        onRefresh={shared ? null : () => api.refreshContext().then(reload)}
+        onApply={shared ? null : (id) => api.applyContextSnapshot(id).then(reload)}
+      />
       <MorningBrief brief={dashboard.brief} onRegenerate={shared ? null : () => api.generateBrief().then(reload)} />
       <Heatmap log={dashboard.log} />
       <StageTrack stagesComplete={dashboard.metrics.stages_complete} />

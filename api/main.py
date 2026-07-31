@@ -5,7 +5,7 @@ from fastapi.staticfiles import StaticFiles
 
 from api.auth import auth_middleware
 from api.db.database import init_db
-from api.routers import brief, dashboard, log, metrics
+from api.routers import brief, context, dashboard, log, metrics
 
 app = FastAPI(title="Forge")
 
@@ -15,6 +15,7 @@ app.include_router(dashboard.router)
 app.include_router(log.router)
 app.include_router(metrics.router)
 app.include_router(brief.router)
+app.include_router(context.router)
 
 
 @app.get("/health")

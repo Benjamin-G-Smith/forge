@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends
 from sqlmodel import Session, select
 
 from api.db.database import get_session
-from api.models.models import Brief, Metrics, Milestone, Session as SessionModel
+from api.models.models import Brief, ContextSnapshot, Metrics, Milestone, Session as SessionModel
 
 router = APIRouter()
 
@@ -18,6 +18,9 @@ def get_dashboard(session: Session = Depends(get_session)):
     milestones = session.exec(select(Milestone)).all()
     latest_brief = session.exec(
         select(Brief).order_by(Brief.date.desc()).limit(1)
+    ).first()
+    latest_context = session.exec(
+        select(ContextSnapshot).order_by(ContextSnapshot.created_at.desc()).limit(1)
     ).first()
 
     return {
@@ -49,6 +52,22 @@ def get_dashboard(session: Session = Depends(get_session)):
                 "research": json.loads(latest_brief.research or "[]"),
             }
             if latest_brief
+            else None
+        ),
+        "context": (
+            {
+                "id": latest_context.id,
+                "created_at": latest_context.created_at,
+                "source": latest_context.source,
+                "summary": latest_context.summary,
+                "next_action": latest_context.next_action,
+                "reasoning": latest_context.reasoning,
+                "proposed_stage": latest_context.proposed_stage,
+                "proposed_milestones": json.loads(latest_context.proposed_milestones),
+                "applied": latest_context.applied,
+                "applied_at": latest_context.applied_at,
+            }
+            if latest_context
             else None
         ),
     }

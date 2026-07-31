@@ -45,6 +45,21 @@ class Brief(SQLModel, table=True):
     generated_at: Optional[int] = None
 
 
+class ContextSnapshot(SQLModel, table=True):
+    __tablename__ = "context_snapshots"
+
+    id: Optional[int] = Field(default=None, primary_key=True)
+    created_at: int  # unix ms
+    source: str  # e.g. "career-pivot.md"
+    summary: str
+    next_action: str
+    reasoning: Optional[str] = None
+    proposed_stage: int
+    proposed_milestones: str  # JSON string {key: bool}
+    applied: bool = False
+    applied_at: Optional[int] = None
+
+
 # --- Request/response schemas (not tables) ---
 
 

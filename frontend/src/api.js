@@ -43,4 +43,7 @@ export const api = {
       method: "PATCH",
       body: JSON.stringify({ completed }),
     }),
+  getContext: () => request("/api/context"),
+  refreshContext: () => request("/api/context/refresh", { method: "POST" }),
+  applyContextSnapshot: (id) => request(`/api/context/${id}/apply`, { method: "POST" }),
 };

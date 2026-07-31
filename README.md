@@ -6,7 +6,7 @@ A personal AI-powered career pivot dashboard. Tracks daily progress toward an AI
 
 Benjamin Smith is a C#/.NET/Angular developer at CCTS (~$99K) pivoting to an AI Application Engineer role ($143K–$220K target) by June 2027. This app is both a personal productivity tool and Stage 1 of a 5-stage career roadmap — it demonstrates Python, FastAPI, LangChain, and Claude API integration in a real deployed application.
 
-The app tracks session logs (daily work), generates a morning brief using a LangChain chain (log → Tavily search → Claude/Gemini → brief), and is shareable with hiring managers via a token URL.
+The app tracks session logs (daily work), generates a morning brief using a LangChain chain (log → Tavily search → Claude/Gemini → brief), and is shareable with hiring managers via a token URL. A second chain reads Benjamin's Obsidian vault notes and proposes roadmap/milestone updates for review (see [Context sync](#context-sync-chain) below) — local-only, since it reads this Mac's filesystem.
 
 ## Stack
 
@@ -29,15 +29,19 @@ forge/
 │   │   ├── dashboard.py     # GET /api/dashboard
 │   │   ├── log.py           # POST /api/log
 │   │   ├── metrics.py       # PATCH /api/metrics, PATCH /api/milestones/{key}
-│   │   └── brief.py         # GET /api/brief, POST /api/brief/generate
+│   │   ├── brief.py         # GET /api/brief, POST /api/brief/generate
+│   │   └── context.py       # GET /api/context, POST /api/context/refresh, POST /api/context/{id}/apply
 │   ├── services/
-│   │   └── brief_service.py # LangChain chain (see below)
+│   │   ├── brief_service.py   # LangChain brief chain (see below)
+│   │   └── context_service.py # Context sync chain + apply-to-tracked-state (see below)
 │   ├── models/
 │   │   └── models.py        # SQLModel table definitions + Pydantic schemas
 │   └── db/
 │       └── database.py      # SQLite engine, session factory, init_db()
 ├── chain/
-│   └── morning_brief.py     # LangChain chain: log → search → generate → persist
+│   ├── llm_utils.py         # Shared get_llm() / parse_json_response() used by both chains
+│   ├── morning_brief.py     # LangChain chain: log → search → generate → persist
+│   └── context_sync.py      # LangChain chain: vault note → synthesize → propose
 ├── scripts/
 │   └── migrate.py           # One-time import from career-metrics.json to SQLite
 ├── frontend/
@@ -45,7 +49,9 @@ forge/
 │   │   ├── App.jsx
 │   │   ├── api.js           # Fetch wrapper; appends ?v=VIEW_TOKEN in share mode
 │   │   └── components/
+│   │       ├── Focus.jsx
 │   │       ├── MorningBrief.jsx
+│   │       ├── ContextSync.jsx
 │   │       ├── Heatmap.jsx
 │   │       ├── MetricsRow.jsx
 │   │       ├── StageTrack.jsx
@@ -100,6 +106,20 @@ CREATE TABLE briefs (
     research     TEXT,               -- JSON: [{title, url, reason}]
     generated_at INTEGER
 );
+
+-- Context sync snapshots (insert-only; each refresh adds a row)
+CREATE TABLE context_snapshots (
+    id                  INTEGER PRIMARY KEY AUTOINCREMENT,
+    created_at          INTEGER,
+    source              TEXT,        -- e.g. "career-pivot.md"
+    summary             TEXT,
+    next_action         TEXT,
+    reasoning           TEXT,
+    proposed_stage      INTEGER,
+    proposed_milestones TEXT,        -- JSON: {"stage1_shipped": false, ...}
+    applied             BOOLEAN DEFAULT FALSE,
+    applied_at          INTEGER
+);
 ```
 
 ## API routes
@@ -112,6 +132,9 @@ CREATE TABLE briefs (
 | PATCH | `/api/milestones/{key}` | admin | Toggle a milestone boolean |
 | GET | `/api/brief` | view token | Latest generated brief |
 | POST | `/api/brief/generate` | admin | Trigger on-demand brief generation |
+| GET | `/api/context` | view token | Latest context-sync snapshot (applied or not) |
+| POST | `/api/context/refresh` | admin | Read the vault note, propose a new snapshot |
+| POST | `/api/context/{id}/apply` | admin | Apply a proposed snapshot to `metrics`/`milestones` |
 | GET | `/*` | view token | Serve React frontend (index.html) |
 
 ## Auth
@@ -151,6 +174,36 @@ Output: Brief object
 ```
 
 **Fallback:** If no session logged yesterday, brief uses roadmap position (current stage + next milestone) as context instead of a log entry.
+
+## Context sync chain
+
+File: `chain/context_sync.py`
+
+```
+Input: current tracked stage + milestones, plus career-pivot.md from the Obsidian vault
+
+Step 1 — Read
+  Read VAULT_CAREER_PIVOT_PATH (default: /Users/bensmith/Documents/ember-vault/projects/career-pivot.md)
+  Returns None if the file doesn't exist (e.g. on Railway — this is local-only)
+
+Step 2 — Generate
+  Prompt: Forge's roadmap + milestone definitions + current tracked state + the raw vault note
+  → get_llm() (shared with morning_brief.py)
+  → Structured output: {summary, next_action, proposed_stage, proposed_milestones, reasoning}
+  Model is instructed to only propose a milestone/stage as complete on concrete evidence
+  in the notes, not vague language
+
+Step 3 — Persist as a proposal, not a fact
+  Insert a new context_snapshots row (applied=false) — metrics/milestones are untouched
+  POST /api/context/{id}/apply is a separate, explicit step that copies the
+  proposed values into the real tracked tables
+
+Output: ContextSnapshot object
+```
+
+**Why propose-then-approve:** an LLM misreading a note and silently rewriting tracked progress would make the "roadmap feels inaccurate" problem worse, not better — so nothing changes until reviewed and applied via the UI's "Apply to tracked state" button.
+
+**Local-only:** the vault lives on this Mac's filesystem, not in the deployed Railway container. `POST /api/context/refresh` works from `forge run`; on Railway it just returns the "no vault note found" fallback.
 
 ## Data migration
 
@@ -207,13 +260,16 @@ TAVILY_API_KEY=        # From app.tavily.com (free tier: 1000 searches/month)
 VIEW_TOKEN=            # Generate: python -c "import secrets; print(secrets.token_urlsafe(24))"
 ADMIN_TOKEN=           # Same as above, keep private
 GOOGLE_API_KEY=        # Optional — only if using Gemini instead of Claude
+VAULT_CAREER_PIVOT_PATH=  # Optional — has a working default, see Context sync chain above
 ```
 
 ## Frontend components
 
 | Component | What it shows |
 |-----------|---------------|
-| `MorningBrief` | Top panel: summary, today's focus recommendation, 2–3 research links with reason tags |
+| `Focus` | Top panel: 2 highlighted cards — today's focus (from the brief) and the next incomplete milestone |
+| `MorningBrief` | Summary + 2–3 research links with reason tags (the focus recommendation itself lives in `Focus`) |
+| `ContextSync` | Latest vault-sync summary/next-action; an amber "proposed update" box with a milestone diff and Apply button while the latest snapshot is unapplied. "Refresh from vault" button, admin-only. |
 | `Heatmap` | 26-week × 7-day grid. Level 0=empty, 1=light green, 2=medium, 3=dark. Today cell has outline. |
 | `MetricsRow` | 4 cards: current streak (days), projects shipped, stages complete (x/5), applications sent |
 | `StageTrack` | 5-stage roadmap with connector lines. Stages: Python+wrapper → Memory+state → Ask PSS Data → Agents+MCP → Ship to users |

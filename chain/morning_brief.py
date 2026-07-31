@@ -7,7 +7,8 @@ module is standalone and testable without the API/DB layer.
 
 import argparse
 import json
-import os
+
+from chain.llm_utils import get_llm, parse_json_response
 
 ROADMAP = [
     {"stage": 1, "title": "Python + wrapper project", "target": "Aug 2026"},
@@ -99,35 +100,16 @@ Respond with ONLY a JSON object in this exact shape:
 Include at most 3 research items, drawn from the search results above."""
 
 
-def parse_brief_json(raw: str) -> dict:
-    text = raw.strip()
-    if text.startswith("```"):
-        text = text.split("```")[1]
-        text = text.removeprefix("json").strip()
-    return json.loads(text)
-
-
-def _get_llm():
-    if os.environ.get("GOOGLE_API_KEY") and not os.environ.get("ANTHROPIC_API_KEY"):
-        from langchain_google_genai import ChatGoogleGenerativeAI
-
-        return ChatGoogleGenerativeAI(model="gemini-1.5-flash")
-
-    from langchain_anthropic import ChatAnthropic
-
-    return ChatAnthropic(model="claude-haiku-4-5")
-
-
 def generate_brief(session: dict | None, stages_complete: int = 0) -> dict:
     stage = roadmap_position(stages_complete)
     queries = classify_session(session)
     results = search(queries)
 
     prompt = build_prompt(session, results, stage)
-    llm = _get_llm()
+    llm = get_llm()
     response = llm.invoke(prompt)
 
-    return parse_brief_json(response.content)
+    return parse_json_response(response.content)
 
 
 def _main() -> None:
