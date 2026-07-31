@@ -14,7 +14,7 @@ The app tracks session logs (daily work), generates a morning brief using a Lang
 |-------|--------|-----|
 | Backend | Python 3.11 + FastAPI | Core skill to build; on every AI engineer job description |
 | Database | SQLite via SQLModel | Self-contained, zero ops, sufficient for solo use |
-| LLM chain | LangChain + Tavily + Claude Haiku 3.5 | LangChain is the dominant framework in 2026 AI eng postings; Tavily is the standard search pairing |
+| LLM chain | LangChain + Tavily + Claude Haiku 4.5 | LangChain is the dominant framework in 2026 AI eng postings; Tavily is the standard search pairing |
 | Frontend | React 18 + Tailwind CSS + Vite | Portfolio-quality UI; familiar component model |
 | Deployment | Railway | Simple Dockerfile-based deploys, volumes for SQLite, per-service cron scheduling for the nightly brief |
 | LLM fallback | Gemini 1.5 Flash | Free API tier — swap via one env var if Anthropic costs are a concern |
@@ -141,7 +141,7 @@ Step 2 — Search
 
 Step 3 — Generate
   Prompt: yesterday's log + search snippets + current roadmap position
-  → ChatAnthropic (claude-haiku-3-5) or ChatGoogleGenerativeAI (gemini-1.5-flash)
+  → ChatAnthropic (claude-haiku-4-5) or ChatGoogleGenerativeAI (gemini-1.5-flash)
   → Structured output via Pydantic: {summary, focus, research[{title, url, reason}]}
 
 Step 4 — Persist

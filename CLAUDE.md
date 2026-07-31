@@ -18,7 +18,7 @@ Benjamin is a C#/.NET/Angular developer pivoting to an AI Application Engineer r
 
 ## Architecture in one paragraph
 
-FastAPI serves both the REST API (`/api/*`) and the built React frontend as static files. SQLite (via SQLModel) is the data layer — one DB file with four tables: `sessions`, `metrics`, `milestones`, `briefs`. The LangChain morning brief chain (`chain/morning_brief.py`) reads yesterday's session, runs 2–3 Tavily searches based on the work type, and calls Claude Haiku 3.5 (or Gemini 1.5 Flash) to generate a structured brief. A second Railway service (same repo, cron-scheduled) runs the chain at 7am and the user can regenerate on demand. Auth is two env-var tokens: `VIEW_TOKEN` (read-only, in shareable URL) and `ADMIN_TOKEN` (write access, in Authorization header).
+FastAPI serves both the REST API (`/api/*`) and the built React frontend as static files. SQLite (via SQLModel) is the data layer — one DB file with four tables: `sessions`, `metrics`, `milestones`, `briefs`. The LangChain morning brief chain (`chain/morning_brief.py`) reads yesterday's session, runs 2–3 Tavily searches based on the work type, and calls Claude Haiku 4.5 (or Gemini 1.5 Flash) to generate a structured brief. A second Railway service (same repo, cron-scheduled) runs the chain at 7am and the user can regenerate on demand. Auth is two env-var tokens: `VIEW_TOKEN` (read-only, in shareable URL) and `ADMIN_TOKEN` (write access, in Authorization header).
 
 ## File layout
 
@@ -98,7 +98,7 @@ def generate_brief(session: dict | None) -> dict:
         results.extend(tool.invoke(q))
 
     # 3. Generate
-    llm = ChatAnthropic(model="claude-haiku-3-5")
+    llm = ChatAnthropic(model="claude-haiku-4-5")
     prompt = build_prompt(session, results, roadmap_position())
     response = llm.invoke(prompt)
 

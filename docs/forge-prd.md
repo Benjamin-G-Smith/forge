@@ -14,7 +14,7 @@ A deployed web application with a FastAPI backend, React + Tailwind frontend, an
 - Backend: Python 3.11 + FastAPI
 - Frontend: React 18 + Tailwind CSS + Vite
 - Database: SQLite (via SQLModel / SQLAlchemy)
-- LLM chain: LangChain + Tavily search + Anthropic Claude (Haiku 3.5) or Gemini 1.5 Flash (free tier)
+- LLM chain: LangChain + Tavily search + Anthropic Claude (Haiku 4.5) or Gemini 1.5 Flash (free tier)
 - Deployment: Railway (app + scheduled brief generation at 7am daily via a second cron-scheduled service)
 - Auth: Single static `VIEW_TOKEN` in URL query param for shared access; `ADMIN_TOKEN` env var for write operations
 

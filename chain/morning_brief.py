@@ -111,7 +111,7 @@ def _get_llm():
 
     from langchain_anthropic import ChatAnthropic
 
-    return ChatAnthropic(model="claude-3-5-haiku-latest")
+    return ChatAnthropic(model="claude-haiku-4-5")
 
 
 def generate_brief(session: dict | None, stages_complete: int = 0) -> dict:
