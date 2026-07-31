@@ -50,14 +50,18 @@ def classify_session(session: dict | None) -> list[str]:
 
 def search(queries: list[str], max_results: int = 3) -> list[dict]:
     """Run Tavily search per query, deduplicated by URL."""
-    from langchain_community.tools.tavily_search import TavilySearchResults
+    from langchain_community.utilities.tavily_search import TavilySearchAPIWrapper
 
-    tool = TavilySearchResults(max_results=max_results)
+    # Use raw_results() rather than the TavilySearchResults tool / .results():
+    # both go through clean_results(), which drops the title field Tavily
+    # actually returns, keeping only url + content.
+    wrapper = TavilySearchAPIWrapper()
     seen_urls: set[str] = set()
     results: list[dict] = []
 
     for query in queries:
-        for r in tool.invoke(query):
+        raw = wrapper.raw_results(query, max_results=max_results)
+        for r in raw.get("results", []):
             url = r.get("url")
             if url and url not in seen_urls:
                 seen_urls.add(url)
