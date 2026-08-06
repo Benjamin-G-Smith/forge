@@ -1,49 +1,81 @@
 import { useEffect, useState } from "react";
 
 import { api, isSharedView } from "./api.js";
-import ContextSync from "./components/ContextSync.jsx";
-import Focus from "./components/Focus.jsx";
-import Heatmap from "./components/Heatmap.jsx";
-import LogSession from "./components/LogSession.jsx";
-import MetricsRow from "./components/MetricsRow.jsx";
-import Milestones from "./components/Milestones.jsx";
-import MorningBrief from "./components/MorningBrief.jsx";
-import ShareBadge from "./components/ShareBadge.jsx";
-import StageTrack from "./components/StageTrack.jsx";
+import ProjectDetail from "./components/ProjectDetail.jsx";
+import ProjectPicker from "./components/ProjectPicker.jsx";
+
+function idFromLocation() {
+  return new URLSearchParams(window.location.search).get("id");
+}
 
 export default function App() {
-  const [dashboard, setDashboard] = useState(null);
+  const [projects, setProjects] = useState(null);
+  const [project, setProject] = useState(null);
+  const [selectedId, setSelectedId] = useState(idFromLocation);
   const [error, setError] = useState(null);
   const shared = isSharedView();
 
-  const reload = () => {
-    api.getDashboard().then(setDashboard).catch((err) => setError(err.message));
+  const loadProjects = () => {
+    api.getProjects().then(setProjects).catch((err) => setError(err.message));
+  };
+  const loadProject = (id) => {
+    api.getProject(id).then(setProject).catch((err) => setError(err.message));
   };
 
-  useEffect(reload, []);
+  useEffect(() => {
+    loadProjects();
+  }, []);
+
+  useEffect(() => {
+    if (selectedId) loadProject(selectedId);
+  }, [selectedId]);
+
+  useEffect(() => {
+    const onPopState = () => setSelectedId(idFromLocation());
+    window.addEventListener("popstate", onPopState);
+    return () => window.removeEventListener("popstate", onPopState);
+  }, []);
+
+  const openProject = (id) => {
+    window.history.pushState({}, "", `?id=${id}`);
+    setSelectedId(id);
+  };
+
+  const backToPicker = () => {
+    window.history.pushState({}, "", window.location.pathname);
+    setProject(null);
+    setSelectedId(null);
+    loadProjects();
+  };
+
+  const reloadCurrent = () => {
+    loadProjects();
+    if (selectedId) loadProject(selectedId);
+  };
 
   if (error) return <div className="p-8 text-red-600">Failed to load: {error}</div>;
-  if (!dashboard) return <div className="p-8 text-gray-500">Loading…</div>;
 
-  return (
-    <div className="mx-auto max-w-4xl space-y-8 p-6">
-      <header className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">Forge</h1>
-        {shared && <ShareBadge />}
-      </header>
-
-      <Focus brief={dashboard.brief} milestones={dashboard.milestones} />
-      <ContextSync
-        context={dashboard.context}
-        onRefresh={shared ? null : () => api.refreshContext().then(reload)}
-        onApply={shared ? null : (id) => api.applyContextSnapshot(id).then(reload)}
+  if (selectedId) {
+    if (!project) return <div className="p-8 text-ink-secondary">Loading…</div>;
+    return (
+      <ProjectDetail
+        project={project}
+        shared={shared}
+        onBack={backToPicker}
+        onRefresh={shared ? null : () => api.refreshProject(selectedId).then(reloadCurrent)}
+        onApply={
+          shared ? null : () => api.applyProjectSnapshot(selectedId, project.snapshot_id).then(reloadCurrent)
+        }
+        onComplete={shared ? null : (index) => api.completeUpNextItem(selectedId, index).then(reloadCurrent)}
+        onToggleMilestone={
+          shared ? null : (key, completed) => api.toggleMilestone(key, completed).then(reloadCurrent)
+        }
+        onLogSession={shared ? null : (payload) => api.logSession(payload).then(reloadCurrent)}
+        onRegenerateBrief={shared ? null : () => api.generateBrief().then(reloadCurrent)}
       />
-      <MorningBrief brief={dashboard.brief} onRegenerate={shared ? null : () => api.generateBrief().then(reload)} />
-      <Heatmap log={dashboard.log} />
-      <StageTrack stagesComplete={dashboard.metrics.stages_complete} />
-      <Milestones milestones={dashboard.milestones} readOnly={shared} onToggle={(key, completed) => api.toggleMilestone(key, completed).then(reload)} />
-      {!shared && <LogSession onSubmit={(payload) => api.logSession(payload).then(reload)} />}
-      <MetricsRow metrics={dashboard.metrics} log={dashboard.log} />
-    </div>
-  );
+    );
+  }
+
+  if (!projects) return <div className="p-8 text-ink-secondary">Loading…</div>;
+  return <ProjectPicker projects={projects} onOpen={openProject} shared={shared} />;
 }

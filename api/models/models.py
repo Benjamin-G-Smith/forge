@@ -45,19 +45,49 @@ class Brief(SQLModel, table=True):
     generated_at: Optional[int] = None
 
 
-class ContextSnapshot(SQLModel, table=True):
-    __tablename__ = "context_snapshots"
+class ProjectSnapshot(SQLModel, table=True):
+    """A synced state for one project (see chain/projects.py), from its vault note.
+
+    Insert-only from refresh, with one exception: complete_up_next_item mutates
+    the latest row in place to move an item from up_next into completed_up_next,
+    since that's a user action against "the current snapshot" rather than a new
+    sync — see api/services/project_service.py.
+    """
+
+    __tablename__ = "project_snapshots"
 
     id: Optional[int] = Field(default=None, primary_key=True)
+    project_id: str
     created_at: int  # unix ms
-    source: str  # e.g. "career-pivot.md"
-    summary: str
-    next_action: str
-    reasoning: Optional[str] = None
-    proposed_stage: int
-    proposed_milestones: str  # JSON string {key: bool}
+    status: str
+    focus: str
+    focus_meta: str
+    stats: str  # JSON [[label, value], ...]
+    up_next: str  # JSON [{title, detail}, ...]
+    progress: str  # JSON [str, ...]
+    completed_up_next: str = "[]"  # JSON [{title, detail}, ...], carried forward on refresh
+    proposed_stage: Optional[int] = None  # flagship project only
+    proposed_milestones: Optional[str] = None  # JSON {key: bool}, flagship project only
     applied: bool = False
     applied_at: Optional[int] = None
+
+
+class ArchivedContextItem(SQLModel, table=True):
+    """A single bullet the user saved for later off a context_snapshots field.
+
+    Decoupled from context_snapshots on purpose: snapshot text is regenerated
+    fresh on every refresh, so an archived bullet has to stand on its own to
+    survive future refreshes rather than pointing at text that may no longer
+    exist verbatim.
+    """
+
+    __tablename__ = "archived_context_items"
+
+    id: Optional[int] = Field(default=None, primary_key=True)
+    text: str
+    source: str  # "summary" | "next_action" | "reasoning"
+    snapshot_id: Optional[int] = None  # provenance only, not a live FK lookup
+    archived_at: int  # unix ms
 
 
 # --- Request/response schemas (not tables) ---
@@ -79,3 +109,17 @@ class MetricsUpdate(BaseModel):
 
 class MilestoneUpdate(BaseModel):
     completed: bool
+
+
+class ArchiveItemCreate(BaseModel):
+    text: str
+    source: str
+    snapshot_id: Optional[int] = None
+
+
+class ApplySnapshotRequest(BaseModel):
+    snapshot_id: int
+
+
+class CompleteItemRequest(BaseModel):
+    index: int

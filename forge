@@ -41,7 +41,28 @@ cmd_run() {
   python3 -m uvicorn api.main:app --reload --port 8000 &
   (cd frontend && exec ./node_modules/.bin/vite) &
 
+  open_when_ready &
+
   wait
+}
+
+open_when_ready() {
+  local opener=""
+  if command -v open >/dev/null 2>&1; then
+    opener="open"
+  elif command -v xdg-open >/dev/null 2>&1; then
+    opener="xdg-open"
+  else
+    return
+  fi
+
+  for _ in $(seq 1 60); do
+    if curl -sf http://localhost:5173 >/dev/null 2>&1; then
+      "$opener" http://localhost:5173
+      return
+    fi
+    sleep 0.5
+  done
 }
 
 cmd_build() {

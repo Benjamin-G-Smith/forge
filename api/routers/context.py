@@ -1,49 +1,44 @@
-import json
+"""Save-for-later archive endpoints. Not currently wired into the UI (retired
+along with the old single-goal Context Sync feature) but left in place since
+the underlying data model still works standalone — see ArchivedContextItem.
+"""
 
 from fastapi import APIRouter, Depends, HTTPException
-from sqlmodel import Session, select
+from sqlmodel import Session
 
 from api.auth import require_admin
 from api.db.database import get_session
-from api.models.models import ContextSnapshot
-from api.services.context_service import apply_snapshot, generate_and_save_snapshot
+from api.models.models import ArchivedContextItem, ArchiveItemCreate
+from api.services.context_service import archive_item, list_archived_items, unarchive_item
 
 router = APIRouter()
 
 
-def _serialize(s: ContextSnapshot) -> dict:
+def _serialize_archived(a: ArchivedContextItem) -> dict:
     return {
-        "id": s.id,
-        "created_at": s.created_at,
-        "source": s.source,
-        "summary": s.summary,
-        "next_action": s.next_action,
-        "reasoning": s.reasoning,
-        "proposed_stage": s.proposed_stage,
-        "proposed_milestones": json.loads(s.proposed_milestones),
-        "applied": s.applied,
-        "applied_at": s.applied_at,
+        "id": a.id,
+        "text": a.text,
+        "source": a.source,
+        "snapshot_id": a.snapshot_id,
+        "archived_at": a.archived_at,
     }
 
 
-@router.get("/api/context")
-def get_context(session: Session = Depends(get_session)):
-    latest = session.exec(
-        select(ContextSnapshot).order_by(ContextSnapshot.created_at.desc()).limit(1)
-    ).first()
-    return _serialize(latest) if latest else None
+@router.get("/api/context/archive")
+def get_archived_items(session: Session = Depends(get_session)):
+    return [_serialize_archived(a) for a in list_archived_items(session)]
 
 
-@router.post("/api/context/refresh", dependencies=[Depends(require_admin)])
-def refresh_context(session: Session = Depends(get_session)):
-    snapshot = generate_and_save_snapshot(session)
-    return _serialize(snapshot)
+@router.post("/api/context/archive", dependencies=[Depends(require_admin)])
+def post_archive_item(payload: ArchiveItemCreate, session: Session = Depends(get_session)):
+    item = archive_item(session, payload.text, payload.source, payload.snapshot_id)
+    return _serialize_archived(item)
 
 
-@router.post("/api/context/{snapshot_id}/apply", dependencies=[Depends(require_admin)])
-def apply_context(snapshot_id: int, session: Session = Depends(get_session)):
+@router.delete("/api/context/archive/{item_id}", dependencies=[Depends(require_admin)])
+def delete_archived_item(item_id: int, session: Session = Depends(get_session)):
     try:
-        snapshot = apply_snapshot(session, snapshot_id)
+        unarchive_item(session, item_id)
     except ValueError:
-        raise HTTPException(status_code=404, detail="snapshot not found or already applied")
-    return _serialize(snapshot)
+        raise HTTPException(status_code=404, detail="archived item not found")
+    return {"ok": True}

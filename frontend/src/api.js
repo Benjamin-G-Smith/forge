@@ -31,7 +31,19 @@ async function request(path, options = {}) {
 }
 
 export const api = {
-  getDashboard: () => request("/api/dashboard"),
+  getProjects: () => request("/api/projects"),
+  getProject: (id) => request(`/api/projects/${id}`),
+  refreshProject: (id) => request(`/api/projects/${id}/refresh`, { method: "POST" }),
+  applyProjectSnapshot: (id, snapshotId) =>
+    request(`/api/projects/${id}/apply`, {
+      method: "POST",
+      body: JSON.stringify({ snapshot_id: snapshotId }),
+    }),
+  completeUpNextItem: (id, index) =>
+    request(`/api/projects/${id}/complete-item`, {
+      method: "POST",
+      body: JSON.stringify({ index }),
+    }),
   getBrief: () => request("/api/brief"),
   generateBrief: () => request("/api/brief/generate", { method: "POST" }),
   logSession: (payload) =>
@@ -43,7 +55,4 @@ export const api = {
       method: "PATCH",
       body: JSON.stringify({ completed }),
     }),
-  getContext: () => request("/api/context"),
-  refreshContext: () => request("/api/context/refresh", { method: "POST" }),
-  applyContextSnapshot: (id) => request(`/api/context/${id}/apply`, { method: "POST" }),
 };

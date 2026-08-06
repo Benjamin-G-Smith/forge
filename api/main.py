@@ -5,13 +5,13 @@ from fastapi.staticfiles import StaticFiles
 
 from api.auth import auth_middleware
 from api.db.database import init_db
-from api.routers import brief, context, dashboard, log, metrics
+from api.routers import brief, context, log, metrics, projects
 
 app = FastAPI(title="Forge")
 
 app.middleware("http")(auth_middleware)
 
-app.include_router(dashboard.router)
+app.include_router(projects.router)
 app.include_router(log.router)
 app.include_router(metrics.router)
 app.include_router(brief.router)

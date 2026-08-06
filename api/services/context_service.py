@@ -1,62 +1,32 @@
-import json
 import time
 
 from sqlmodel import Session, select
 
-from api.models.models import ContextSnapshot, Metrics, Milestone
-from chain.context_sync import MILESTONE_LABELS, synthesize_context
+from api.models.models import ArchivedContextItem
 
 
-def _current_milestones(session: Session) -> dict[str, bool]:
-    existing = {m.key: m.completed for m in session.exec(select(Milestone)).all()}
-    return {key: existing.get(key, False) for key in MILESTONE_LABELS}
+def list_archived_items(session: Session) -> list[ArchivedContextItem]:
+    return session.exec(
+        select(ArchivedContextItem).order_by(ArchivedContextItem.archived_at.desc())
+    ).all()
 
 
-def generate_and_save_snapshot(session: Session) -> ContextSnapshot:
-    metrics = session.get(Metrics, 1) or Metrics(id=1)
-    current_milestones = _current_milestones(session)
-
-    result = synthesize_context(metrics.stages_complete, current_milestones)
-
-    snapshot = ContextSnapshot(
-        created_at=int(time.time() * 1000),
-        source="career-pivot.md",
-        summary=result["summary"],
-        next_action=result["next_action"],
-        reasoning=result.get("reasoning", ""),
-        proposed_stage=result["proposed_stage"],
-        proposed_milestones=json.dumps(result["proposed_milestones"]),
+def archive_item(session: Session, text: str, source: str, snapshot_id: int | None) -> ArchivedContextItem:
+    item = ArchivedContextItem(
+        text=text,
+        source=source,
+        snapshot_id=snapshot_id,
+        archived_at=int(time.time() * 1000),
     )
-    session.add(snapshot)
+    session.add(item)
     session.commit()
-    session.refresh(snapshot)
-    return snapshot
+    session.refresh(item)
+    return item
 
 
-def apply_snapshot(session: Session, snapshot_id: int) -> ContextSnapshot:
-    snapshot = session.get(ContextSnapshot, snapshot_id)
-    if snapshot is None or snapshot.applied:
-        raise ValueError("snapshot not found or already applied")
-
-    now = int(time.time() * 1000)
-
-    metrics = session.get(Metrics, 1) or Metrics(id=1)
-    metrics.stages_complete = snapshot.proposed_stage
-    metrics.updated_at = now
-    session.add(metrics)
-
-    proposed = json.loads(snapshot.proposed_milestones)
-    for key, completed in proposed.items():
-        milestone = session.get(Milestone, key) or Milestone(key=key)
-        if milestone.completed != completed:
-            milestone.completed = completed
-            milestone.completed_at = now if completed else None
-        session.add(milestone)
-
-    snapshot.applied = True
-    snapshot.applied_at = now
-    session.add(snapshot)
-
+def unarchive_item(session: Session, item_id: int) -> None:
+    item = session.get(ArchivedContextItem, item_id)
+    if item is None:
+        raise ValueError("archived item not found")
+    session.delete(item)
     session.commit()
-    session.refresh(snapshot)
-    return snapshot

@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Forge — project</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#F7F7F5; --surface:#FFFFFF; --surface-tint:#FAFAF8;
+    --border:#E7E5E0; --border-strong:#D6D3CB;
+    --text-primary:#1C1B18; --text-secondary:#6B6862; --text-muted:#9C988F;
+    --green-solid:#4C9A5B;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--bg);font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:var(--text-primary);-webkit-font-smoothing:antialiased;}
+  .page{max-width:920px;margin:0 auto;padding:40px 28px 80px;}
+  a{text-decoration:none;}
+
+  .topbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;}
+  .brand{display:flex;align-items:center;gap:12px;}
+  .brand-mark{width:36px;height:36px;border-radius:10px;background:var(--text-primary);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:17px;}
+  .brand-name{font-size:20px;font-weight:700;letter-spacing:-0.01em;}
+  .date{font-size:14px;color:var(--text-secondary);}
+
+  .back-link{display:inline-flex;align-items:center;gap:6px;font-size:13.5px;color:var(--text-secondary);font-weight:500;margin:28px 0 16px;cursor:pointer;transition:color .15s;}
+  .back-link:hover{color:var(--text-primary);}
+
+  .phead{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:12px;}
+  .phead-left{display:flex;align-items:center;gap:14px;}
+  .picon{width:44px;height:44px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;}
+  .pname{font-size:22px;font-weight:700;letter-spacing:-0.01em;}
+  .psub{font-size:13.5px;color:var(--text-secondary);margin-top:3px;}
+  .pill{font-size:11.5px;font-weight:600;padding:5px 12px;border-radius:20px;white-space:nowrap;}
+
+  .stats-row{display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap;}
+  .stat{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:10px 16px;font-size:12.5px;color:var(--text-secondary);}
+  .stat b{color:var(--text-primary);font-weight:600;}
+
+  .card{background:var(--surface);border:1px solid var(--border);border-radius:16px;box-shadow:0 1px 2px rgba(28,27,24,0.03);}
+  .focus-card{border-radius:16px;padding:24px 26px;margin-bottom:16px;border:none;}
+  .eyebrow{font-size:11.5px;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;margin-bottom:10px;}
+  .focus-text{font-size:16.5px;line-height:1.7;margin:0;}
+
+  .next-card{padding:22px 24px;margin-bottom:16px;}
+  .next-card .eyebrow{color:var(--text-secondary);}
+  .next-list{display:flex;flex-direction:column;gap:16px;}
+  .next-item{display:flex;gap:13px;align-items:flex-start;}
+  .checkbox{width:19px;height:19px;border-radius:50%;border:2px solid var(--border-strong);flex-shrink:0;margin-top:2px;}
+  .next-title{font-size:14.5px;font-weight:500;line-height:1.5;color:var(--text-primary);}
+
+  .panel{padding:22px 24px;}
+  .panel .eyebrow{color:var(--text-secondary);margin-bottom:16px;}
+  .timeline{display:flex;flex-direction:column;gap:15px;}
+  .timeline-item{display:flex;gap:12px;align-items:flex-start;}
+  .check-done{width:19px;height:19px;border-radius:50%;background:var(--green-solid);color:#fff;display:flex;align-items:center;justify-content:center;font-size:11px;flex-shrink:0;margin-top:1px;}
+  .timeline-text{font-size:13.5px;line-height:1.6;color:var(--text-primary);}
+
+  .steps{display:flex;position:relative;margin-top:6px;}
+  .steps::before{content:"";position:absolute;top:14px;left:40px;right:40px;height:1px;background:var(--border);}
+  .step{flex:1;text-align:center;position:relative;z-index:1;}
+  .step-dot{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 8px;font-size:13px;font-weight:600;}
+  .step-label{font-size:12.5px;color:var(--text-primary);font-weight:500;}
+  .step-label.faded{color:var(--text-muted);text-decoration:line-through;font-weight:400;}
+  .step-date{font-size:11px;color:var(--text-muted);margin-top:3px;}
+
+  @media(max-width:640px){.stats-row{flex-direction:column;}}
+</style>
+</head>
+<body>
+<div class="page" id="page"></div>
+
+<script>
+var PROJECTS = {
+  career: {
+    name: "Career pivot",
+    subtitle: "Python + wrapper project → ship to real users",
+    icon: "◎",
+    status: "On track",
+    bg: "#EAF2FC", text: "#1D4E89", solid: "#3378C4",
+    lastActive: "Active today",
+    stats: [["Stage", "2 of 5"], ["Target", "Aug 2026"]],
+    focus: "Complete your first small Python project today using one of the beginner project lists as a guide — this bridges theory and the practical skills your wrapper project needs.",
+    focusMeta: "30–60 min · Stage 1",
+    upNext: [
+      { title: "Continue Python ramp", detail: "rolling_error_window.py exercise, then the live_log_monitor project" },
+      { title: "Start Stage 2 planning", detail: "Sketch memory + state approach for the wrapper" }
+    ],
+    progress: [
+      "Market research complete — 25+ roles analyzed, pay mapped $143K–$220K",
+      "Three Python scripts shipped with working self-checks",
+      "Stage 1 roadmap milestone reached"
+    ],
+    roadmap: [
+      { label: "Python + wrapper", date: "Aug 2026", state: "done" },
+      { label: "Memory + state", date: "Sept 2026", state: "current" },
+      { label: "Ask PSS Data", date: "Oct 2026", state: "todo" },
+      { label: "Agents + MCP", date: "Nov 2026", state: "todo" },
+      { label: "Ship to real users", date: "Dec 2026", state: "todo" }
+    ]
+  },
+  pss: {
+    name: "PSS Data",
+    subtitle: "Text-to-SQL architecture, fully specced and ready to build",
+    icon: "◫",
+    status: "Blocked",
+    bg: "#FBEAE7", text: "#9C4A2E", solid: "#D2653F",
+    lastActive: "2 days ago",
+    stats: [["Open questions", "12"], ["Test set", "30 cases"]],
+    focus: "Resolve open questions #1, #2, and #5 with IT — schema access, auth/scoping, and FERPA policy — before any coding can start.",
+    focusMeta: "Blocking · waiting on IT",
+    upNext: [
+      { title: "Resolve open questions #1, #2, #5 with IT", detail: "Schema, auth/scoping, FERPA policy" },
+      { title: "Schedule sync with IT", detail: "Get schema access confirmed" },
+      { title: "Draft FERPA policy summary", detail: "For IT and compliance review" }
+    ],
+    progress: [
+      "Text-to-SQL architecture decided",
+      "30-case golden test set written",
+      "12 open questions identified and logged"
+    ]
+  },
+  watchtower: {
+    name: "Watchtower",
+    subtitle: "Ember signal dashboard, live via Claude + web search",
+    icon: "◉",
+    status: "In progress",
+    bg: "#E6F5F1", text: "#1F6F5C", solid: "#2F9C82",
+    lastActive: "3 days ago",
+    stats: [["Features shipped", "2"], ["Signals", "Live"]],
+    focus: "Implement the live-topics ticker and GitHub trending section per Gemini's prompts.",
+    focusMeta: "In progress · next feature",
+    upNext: [
+      { title: "Implement live-topics ticker", detail: "Per Gemini prompt spec" },
+      { title: "Add GitHub trending section", detail: "Surface trending repos in dashboard" },
+      { title: "QA live signal refresh timing", detail: "Confirm Claude + web_search polling interval" }
+    ],
+    progress: [
+      "Signal dashboard built and shipped",
+      "Live signals returning via Claude + web_search",
+      "Core Ember app scaffolding complete"
+    ]
+  },
+  interview: {
+    name: "Interview prep",
+    subtitle: "STAR stories drafted from CCTS work",
+    icon: "✦",
+    status: "Warm",
+    bg: "#F1EEFB", text: "#5A4B96", solid: "#7C6BC4",
+    lastActive: "5 days ago",
+    stats: [["Stories drafted", "16"], ["Flagship", ".NET migration"]],
+    focus: "Polish the .NET Framework → 8 → 10 migration story as your flagship — tighten the STAR structure and quantify impact.",
+    focusMeta: "Warm · keep momentum",
+    upNext: [
+      { title: "Polish flagship .NET migration story", detail: "Tighten structure, quantify impact" },
+      { title: "Practice delivering 3 stories out loud", detail: "Time each to under 2 minutes" },
+      { title: "Map stories to likely interview questions", detail: "Cross-reference against target roles" }
+    ],
+    progress: [
+      "16 STAR interview stories drafted from CCTS work",
+      ".NET Framework → 8 → 10 migration flagged as flagship story"
+    ]
+  }
+};
+
+function render() {
+  var params = new URLSearchParams(window.location.search);
+  var id = params.get("id") || "career";
+  var p = PROJECTS[id] || PROJECTS.career;
+
+  var statsHtml = p.stats.map(function(s) {
+    return '<div class="stat">' + s[0] + ': <b>' + s[1] + '</b></div>';
+  }).join("");
+
+  var upNextHtml = p.upNext.map(function(item) {
+    return '<div class="next-item"><div class="checkbox"></div><div>' +
+      '<div class="next-title">' + item.title + '</div>' +
+      '<div style="font-size:12.5px;color:var(--text-muted);margin-top:3px;line-height:1.5;">' + item.detail + '</div>' +
+      '</div></div>';
+  }).join("");
+
+  var progressHtml = p.progress.map(function(text) {
+    return '<div class="timeline-item"><div class="check-done">✓</div><div class="timeline-text">' + text + '</div></div>';
+  }).join("");
+
+  var roadmapHtml = "";
+  if (p.roadmap) {
+    var stepsHtml = p.roadmap.map(function(step) {
+      var dotStyle, labelClass = "step-label";
+      if (step.state === "done") {
+        dotStyle = "background:var(--green-solid);color:#fff;";
+        labelClass += " faded";
+      } else if (step.state === "current") {
+        dotStyle = "background:" + p.solid + ";color:#fff;";
+      } else {
+        dotStyle = "background:var(--surface);border:1.5px solid var(--border-strong);color:var(--text-muted);";
+      }
+      var dotContent = step.state === "done" ? "✓" : (step.state === "current" ? "●" : "");
+      return '<div class="step"><div class="step-dot" style="' + dotStyle + '">' + dotContent + '</div>' +
+        '<div class="' + labelClass + '">' + step.label + '</div>' +
+        '<div class="step-date">' + step.date + '</div></div>';
+    }).join("");
+    roadmapHtml = '<div class="card panel" style="margin-top:16px;"><div class="eyebrow">Roadmap</div><div class="steps">' + stepsHtml + '</div></div>';
+  }
+
+  document.getElementById("page").innerHTML =
+    '<div class="topbar">' +
+      '<div class="brand"><div class="brand-mark">F</div><div class="brand-name">Forge</div></div>' +
+      '<div class="date">Wednesday, Aug 5</div>' +
+    '</div>' +
+    '<a class="back-link" href="forge-project-picker.html">← All projects</a>' +
+    '<div class="phead">' +
+      '<div class="phead-left">' +
+        '<div class="picon" style="background:' + p.bg + ';color:' + p.text + ';">' + p.icon + '</div>' +
+        '<div><div class="pname">' + p.name + '</div><div class="psub">' + p.subtitle + '</div></div>' +
+      '</div>' +
+      '<span class="pill" style="background:' + p.bg + ';color:' + p.text + ';">' + p.status + '</span>' +
+    '</div>' +
+    '<div class="stats-row">' + statsHtml + '<div class="stat">' + p.lastActive + '</div></div>' +
+    '<div class="focus-card" style="background:' + p.bg + ';">' +
+      '<div class="eyebrow" style="color:' + p.text + ';">Current focus</div>' +
+      '<p class="focus-text" style="color:' + p.text + ';">' + p.focus + '</p>' +
+    '</div>' +
+    '<div class="card next-card"><div class="eyebrow">Up next</div><div class="next-list">' + upNextHtml + '</div></div>' +
+    '<div class="card panel"><div class="eyebrow">Recent progress</div><div class="timeline">' + progressHtml + '</div></div>' +
+    roadmapHtml;
+}
+
+render();
+window.addEventListener("popstate", render);
+</script>
+</body>
+</html>

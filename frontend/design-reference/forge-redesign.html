@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Forge — redesigned</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#F7F7F5;
+    --surface:#FFFFFF;
+    --surface-tint:#FAFAF8;
+    --border:#E7E5E0;
+    --border-strong:#D6D3CB;
+    --text-primary:#1C1B18;
+    --text-secondary:#6B6862;
+    --text-muted:#9C988F;
+    --blue-bg:#EAF2FC;
+    --blue-text:#1D4E89;
+    --blue-solid:#3378C4;
+    --amber-bg:#FDF3E3;
+    --amber-text:#8A5A0B;
+    --green-solid:#4C9A5B;
+    --green-bg:#EAF5EC;
+    --green-text:#2F6D3B;
+    --radius-lg:16px;
+    --radius-md:10px;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:var(--bg);
+    font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+    color:var(--text-primary);
+    -webkit-font-smoothing:antialiased;
+  }
+  .page{max-width:960px;margin:0 auto;padding:40px 28px 80px;}
+  .topbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:32px;}
+  .brand{display:flex;align-items:center;gap:12px;}
+  .brand-mark{width:36px;height:36px;border-radius:10px;background:var(--text-primary);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:17px;}
+  .brand-name{font-size:20px;font-weight:700;letter-spacing:-0.01em;}
+  .brand-sub{font-size:13px;color:var(--text-secondary);}
+  .date{font-size:14px;color:var(--text-secondary);}
+
+  .card{
+    background:var(--surface);
+    border:1px solid var(--border);
+    border-radius:var(--radius-lg);
+    box-shadow:0 1px 2px rgba(28,27,24,0.03);
+  }
+
+  .hero{display:grid;grid-template-columns:1.7fr 1fr;gap:16px;margin-bottom:16px;}
+  .focus-card{background:var(--blue-bg);border:none;border-radius:var(--radius-lg);padding:26px 28px;}
+  .eyebrow{font-size:11.5px;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;}
+  .focus-card .eyebrow{color:var(--blue-text);margin-bottom:12px;}
+  .focus-text{font-size:18px;line-height:1.7;color:var(--blue-text);margin:0 0 18px;font-weight:400;}
+  .pill-row{display:flex;gap:8px;flex-wrap:wrap;}
+  .pill{font-size:12.5px;font-weight:500;color:var(--blue-text);background:rgba(255,255,255,0.55);padding:5px 12px;border-radius:20px;display:inline-flex;align-items:center;gap:5px;}
+
+  .milestone-card{padding:22px 24px;display:flex;flex-direction:column;}
+  .milestone-card .eyebrow{color:var(--amber-text);margin-bottom:10px;}
+  .milestone-title{font-size:19px;font-weight:600;margin-bottom:18px;letter-spacing:-0.01em;}
+  .dots{display:flex;gap:6px;margin-bottom:10px;}
+  .dot{width:9px;height:9px;border-radius:50%;}
+  .dot.done{background:var(--green-solid);}
+  .dot.current{background:var(--blue-solid);}
+  .dot.todo{background:var(--border-strong);}
+  .milestone-note{font-size:13px;color:var(--text-secondary);}
+
+  .next-card{padding:24px 26px;margin-bottom:16px;}
+  .next-card .eyebrow{color:var(--text-secondary);margin-bottom:16px;}
+  .next-list{display:flex;flex-direction:column;gap:18px;}
+  .next-item{display:flex;gap:14px;align-items:flex-start;}
+  .checkbox{width:20px;height:20px;border-radius:50%;border:2px solid var(--border-strong);flex-shrink:0;margin-top:2px;transition:border-color 0.15s;}
+  .next-item:hover .checkbox{border-color:var(--blue-solid);}
+  .next-title{font-size:15px;font-weight:500;line-height:1.5;color:var(--text-primary);}
+  .next-detail{font-size:13px;color:var(--text-muted);margin-top:3px;line-height:1.5;}
+
+  .body-grid{display:grid;grid-template-columns:1.4fr 1fr;gap:16px;margin-bottom:16px;}
+  .panel{padding:22px 24px;}
+  .panel .eyebrow{color:var(--text-secondary);margin-bottom:16px;}
+
+  .timeline{display:flex;flex-direction:column;gap:16px;}
+  .timeline-item{display:flex;gap:12px;align-items:flex-start;}
+  .check-done{width:20px;height:20px;border-radius:50%;background:var(--green-solid);color:#fff;display:flex;align-items:center;justify-content:center;font-size:12px;flex-shrink:0;margin-top:1px;}
+  .timeline-text{font-size:14px;line-height:1.6;color:var(--text-primary);}
+
+  .side-stack{display:flex;flex-direction:column;gap:16px;}
+  .resource{display:block;text-decoration:none;padding:10px 0;border-bottom:1px solid var(--border);}
+  .resource:last-child{border-bottom:none;padding-bottom:0;}
+  .resource-title{font-size:14px;font-weight:600;color:var(--blue-solid);}
+  .resource-why{font-size:12.5px;color:var(--text-muted);margin-top:3px;}
+
+  .heat{display:grid;grid-template-columns:repeat(14,1fr);gap:4px;margin-top:2px;}
+  .heat-cell{aspect-ratio:1;border-radius:3px;background:var(--surface-tint);border:1px solid var(--border);}
+  .heat-cell.done{background:var(--green-solid);border-color:var(--green-solid);}
+  .heat-cell.today{border:2px solid var(--blue-solid);}
+  .streak-note{font-size:12.5px;color:var(--text-muted);margin-top:12px;}
+
+  .roadmap{padding:24px 26px;}
+  .roadmap .eyebrow{color:var(--text-secondary);margin-bottom:20px;}
+  .steps{display:flex;position:relative;}
+  .steps::before{content:"";position:absolute;top:14px;left:40px;right:40px;height:1px;background:var(--border);}
+  .step{flex:1;text-align:center;position:relative;z-index:1;}
+  .step-dot{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 8px;font-size:13px;font-weight:600;}
+  .step-dot.done{background:var(--green-solid);color:#fff;}
+  .step-dot.current{background:var(--blue-solid);color:#fff;}
+  .step-dot.todo{background:var(--surface);border:1.5px solid var(--border-strong);color:var(--text-muted);}
+  .step-label{font-size:12.5px;color:var(--text-primary);font-weight:500;}
+  .step-label.faded{color:var(--text-muted);text-decoration:line-through;font-weight:400;}
+  .step-label.current{color:var(--blue-solid);}
+  .step-date{font-size:11px;color:var(--text-muted);margin-top:3px;}
+
+  @media(max-width:700px){
+    .hero,.body-grid{grid-template-columns:1fr;}
+    .steps{flex-wrap:wrap;gap:16px 0;}
+    .steps::before{display:none;}
+    .step{flex:1 1 33%;}
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <div class="topbar">
+    <div class="brand">
+      <div class="brand-mark">F</div>
+      <div>
+        <div class="brand-name">Forge</div>
+        <div class="brand-sub">Career pivot tracker</div>
+      </div>
+    </div>
+    <div class="date">Wednesday, Aug 5</div>
+  </div>
+
+  <div class="hero">
+    <div class="focus-card">
+      <div class="eyebrow">Today's focus</div>
+      <p class="focus-text">Complete your first small Python project today using one of the beginner project lists as a guide — this bridges theory and the practical skills your wrapper project needs.</p>
+      <div class="pill-row">
+        <span class="pill">⏱ 30–60 min</span>
+        <span class="pill">Stage 1</span>
+      </div>
+    </div>
+    <div class="card milestone-card">
+      <div class="eyebrow">Next milestone</div>
+      <div class="milestone-title">Stage 1 shipped</div>
+      <div class="dots">
+        <div class="dot done"></div>
+        <div class="dot current"></div>
+        <div class="dot todo"></div>
+        <div class="dot todo"></div>
+        <div class="dot todo"></div>
+      </div>
+      <div class="milestone-note">Stage 2 of 5 · Memory + state up next</div>
+    </div>
+  </div>
+
+  <div class="card next-card">
+    <div class="eyebrow">Up next — where to spend your attention</div>
+    <div class="next-list">
+      <div class="next-item">
+        <div class="checkbox"></div>
+        <div>
+          <div class="next-title">Resolve PSS open questions #1, #2, #5 with IT</div>
+          <div class="next-detail">Schema, auth/scoping, FERPA policy — blocks coding from starting</div>
+        </div>
+      </div>
+      <div class="next-item">
+        <div class="checkbox"></div>
+        <div>
+          <div class="next-title">Continue Python ramp</div>
+          <div class="next-detail">rolling_error_window.py exercise, then the live_log_monitor project</div>
+        </div>
+      </div>
+      <div class="next-item">
+        <div class="checkbox"></div>
+        <div>
+          <div class="next-title">Implement Watchtower live-topics ticker</div>
+          <div class="next-detail">Plus the GitHub trending section, per Gemini's prompts</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="body-grid">
+    <div class="card panel">
+      <div class="eyebrow">Recent progress</div>
+      <div class="timeline">
+        <div class="timeline-item">
+          <div class="check-done">✓</div>
+          <div class="timeline-text">Market research complete — 25+ roles analyzed, 5 flavors identified, pay mapped $143K–$220K</div>
+        </div>
+        <div class="timeline-item">
+          <div class="check-done">✓</div>
+          <div class="timeline-text">PSS Data project fully specced — text-to-SQL architecture, 30-case golden test set, 12 open questions</div>
+        </div>
+        <div class="timeline-item">
+          <div class="check-done">✓</div>
+          <div class="timeline-text">Three Python scripts shipped with working self-checks (log_analytics, review_aggregator, lazy_log_stream)</div>
+        </div>
+        <div class="timeline-item">
+          <div class="check-done">✓</div>
+          <div class="timeline-text">Watchtower signal dashboard built and returning live signals via Claude + web search</div>
+        </div>
+        <div class="timeline-item">
+          <div class="check-done">✓</div>
+          <div class="timeline-text">16 STAR interview stories drafted; .NET Framework → 8 → 10 migration flagged as flagship story</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="side-stack">
+      <div class="card panel">
+        <div class="eyebrow">Resources</div>
+        <a class="resource" href="#">
+          <div class="resource-title">19 Python Projects for Beginners</div>
+          <div class="resource-why">Pick one, build it today</div>
+        </a>
+        <a class="resource" href="#">
+          <div class="resource-title">Python Tutorial for Beginners</div>
+          <div class="resource-why">Quick syntax refresher</div>
+        </a>
+        <a class="resource" href="#">
+          <div class="resource-title">Python Full Course · Simplilearn</div>
+          <div class="resource-why">Bookmark for tougher topics later</div>
+        </a>
+      </div>
+
+      <div class="card panel">
+        <div class="eyebrow">Activity</div>
+        <div class="heat" id="heat"></div>
+        <div class="streak-note">No session logged yesterday</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card roadmap">
+    <div class="eyebrow">Roadmap</div>
+    <div class="steps">
+      <div class="step">
+        <div class="step-dot done">✓</div>
+        <div class="step-label faded">Python + wrapper</div>
+        <div class="step-date">Aug 2026</div>
+      </div>
+      <div class="step">
+        <div class="step-dot current">2</div>
+        <div class="step-label current">Memory + state</div>
+        <div class="step-date">Sept 2026</div>
+      </div>
+      <div class="step">
+        <div class="step-dot todo">3</div>
+        <div class="step-label">Ask PSS Data</div>
+        <div class="step-date">Oct 2026</div>
+      </div>
+      <div class="step">
+        <div class="step-dot todo">4</div>
+        <div class="step-label">Agents + MCP</div>
+        <div class="step-date">Nov 2026</div>
+      </div>
+      <div class="step">
+        <div class="step-dot todo">5</div>
+        <div class="step-label">Ship to real users</div>
+        <div class="step-date">Dec 2026</div>
+      </div>
+    </div>
+  </div>
+
+</div>
+<script>
+  var heat = document.getElementById('heat');
+  for (var i = 0; i < 28; i++) {
+    var cell = document.createElement('div');
+    cell.className = 'heat-cell';
+    if (i === 25) cell.className += ' done';
+    if (i === 27) cell.className += ' today';
+    heat.appendChild(cell);
+  }
+</script>
+</body>
+</html>

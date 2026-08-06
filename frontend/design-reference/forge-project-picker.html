@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Forge — projects</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#F7F7F5;
+    --surface:#FFFFFF;
+    --surface-tint:#FAFAF8;
+    --border:#E7E5E0;
+    --border-strong:#D6D3CB;
+    --text-primary:#1C1B18;
+    --text-secondary:#6B6862;
+    --text-muted:#9C988F;
+
+    --blue-bg:#EAF2FC; --blue-text:#1D4E89; --blue-solid:#3378C4;
+    --coral-bg:#FBEAE7; --coral-text:#9C4A2E; --coral-solid:#D2653F;
+    --teal-bg:#E6F5F1; --teal-text:#1F6F5C; --teal-solid:#2F9C82;
+    --purple-bg:#F1EEFB; --purple-text:#5A4B96; --purple-solid:#7C6BC4;
+    --green-solid:#4C9A5B;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--bg);font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:var(--text-primary);-webkit-font-smoothing:antialiased;}
+  .page{max-width:920px;margin:0 auto;padding:40px 28px 80px;}
+
+  .topbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;}
+  .brand{display:flex;align-items:center;gap:12px;}
+  .brand-mark{width:36px;height:36px;border-radius:10px;background:var(--text-primary);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:17px;}
+  .brand-name{font-size:20px;font-weight:700;letter-spacing:-0.01em;}
+  .date{font-size:14px;color:var(--text-secondary);}
+
+  .page-head{margin:28px 0 20px;}
+  .page-title{font-size:22px;font-weight:700;letter-spacing:-0.01em;}
+  .page-sub{font-size:14px;color:var(--text-secondary);margin-top:4px;}
+
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+  .pcard{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:22px 24px;box-shadow:0 1px 2px rgba(28,27,24,0.03);cursor:pointer;transition:border-color .15s, transform .15s;}
+  .pcard:hover{border-color:var(--border-strong);transform:translateY(-1px);}
+  .pcard-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px;}
+  .picon{width:38px;height:38px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;}
+  .pill{font-size:11.5px;font-weight:600;padding:4px 11px;border-radius:20px;}
+  .pname{font-size:17px;font-weight:600;margin-bottom:4px;letter-spacing:-0.01em;}
+  .psub{font-size:13px;color:var(--text-muted);line-height:1.5;margin-bottom:16px;}
+  .pdetail{font-size:13px;color:var(--text-secondary);margin-bottom:16px;}
+  .pdots{display:flex;gap:6px;margin-bottom:16px;}
+  .pdot{width:8px;height:8px;border-radius:50%;}
+  .pfoot{display:flex;justify-content:space-between;align-items:center;padding-top:14px;border-top:1px solid var(--border);font-size:12px;color:var(--text-muted);}
+  .pfoot .open{color:var(--text-primary);font-weight:500;}
+
+  .add-card{border:1.5px dashed var(--border-strong);border-radius:16px;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:30px;color:var(--text-muted);gap:8px;font-size:14px;font-weight:500;cursor:pointer;transition:border-color .15s, color .15s;}
+  .add-card:hover{border-color:var(--text-secondary);color:var(--text-secondary);}
+  .add-plus{width:32px;height:32px;border-radius:50%;border:1.5px solid var(--border-strong);display:flex;align-items:center;justify-content:center;font-size:16px;}
+
+  @media(max-width:640px){.grid{grid-template-columns:1fr;}}
+</style>
+</head>
+<body>
+<div class="page">
+
+  <div class="topbar">
+    <div class="brand">
+      <div class="brand-mark">F</div>
+      <div class="brand-name">Forge</div>
+    </div>
+    <div class="date">Wednesday, Aug 5</div>
+  </div>
+
+  <div class="page-head">
+    <div class="page-title">Your projects</div>
+    <div class="page-sub">4 active · pick up where you left off</div>
+  </div>
+
+  <div class="grid">
+
+    <div class="pcard" onclick="window.location.href='forge-project.html?id=career'">
+      <div class="pcard-top">
+        <div class="picon" style="background:var(--blue-bg);color:var(--blue-text);">◎</div>
+        <span class="pill" style="background:var(--blue-bg);color:var(--blue-text);">On track</span>
+      </div>
+      <div class="pname">Career pivot</div>
+      <div class="psub">Python + wrapper project → ship to real users</div>
+      <div class="pdots">
+        <div class="pdot" style="background:var(--green-solid);"></div>
+        <div class="pdot" style="background:var(--blue-solid);"></div>
+        <div class="pdot" style="background:var(--border-strong);"></div>
+        <div class="pdot" style="background:var(--border-strong);"></div>
+        <div class="pdot" style="background:var(--border-strong);"></div>
+      </div>
+      <div class="pfoot"><span>Active today</span><span class="open">Stage 2 of 5 →</span></div>
+    </div>
+
+    <div class="pcard" onclick="window.location.href='forge-project.html?id=pss'">
+      <div class="pcard-top">
+        <div class="picon" style="background:var(--coral-bg);color:var(--coral-text);">◫</div>
+        <span class="pill" style="background:var(--coral-bg);color:var(--coral-text);">Blocked</span>
+      </div>
+      <div class="pname">PSS Data</div>
+      <div class="psub">Text-to-SQL architecture, fully specced and ready to build</div>
+      <div class="pdetail">Waiting on IT — schema, auth/scoping, FERPA policy</div>
+      <div class="pfoot"><span>2 days ago</span><span class="open">12 open Qs →</span></div>
+    </div>
+
+    <div class="pcard" onclick="window.location.href='forge-project.html?id=watchtower'">
+      <div class="pcard-top">
+        <div class="picon" style="background:var(--teal-bg);color:var(--teal-text);">◉</div>
+        <span class="pill" style="background:var(--teal-bg);color:var(--teal-text);">In progress</span>
+      </div>
+      <div class="pname">Watchtower</div>
+      <div class="psub">Ember signal dashboard, live via Claude + web search</div>
+      <div class="pdetail">Next: live-topics ticker + GitHub trending</div>
+      <div class="pfoot"><span>3 days ago</span><span class="open">2 features shipped →</span></div>
+    </div>
+
+    <div class="pcard" onclick="window.location.href='forge-project.html?id=interview'">
+      <div class="pcard-top">
+        <div class="picon" style="background:var(--purple-bg);color:var(--purple-text);">✦</div>
+        <span class="pill" style="background:var(--purple-bg);color:var(--purple-text);">Warm</span>
+      </div>
+      <div class="pname">Interview prep</div>
+      <div class="psub">STAR stories drafted from CCTS work</div>
+      <div class="pdetail">.NET Framework → 8 → 10 migration flagged as flagship</div>
+      <div class="pfoot"><span>5 days ago</span><span class="open">16 stories →</span></div>
+    </div>
+
+  </div>
+
+  <div class="add-card" style="margin-top:16px;">
+    <div class="add-plus">+</div>
+    New project
+  </div>
+
+</div>
+</body>
+</html>
